@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://vatsal-naik15.github.io/dbe-grades/sitemap.xml
