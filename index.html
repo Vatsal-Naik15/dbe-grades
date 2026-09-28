@@ -324,7 +324,7 @@ input[type=range]{width:100%;accent-color:var(--brass);height:18px;margin:0}
   <div id="empty" class="empty hidden">Your courses will appear here, grouped by term.</div>
   <div id="results" class="results hidden">
     <div class="sample hidden" id="sampleBanner">
-      <p><b>This is a sample student with made-up marks.</b> Paste your own grades above to see yours.</p>
+      <p><b>This is a sample layout with every mark set to 0.</b> Paste your own grades above to see yours.</p>
       <button class="btn" type="button" id="focusPaste">Paste mine</button>
     </div>
     <dl class="overview" id="overview"></dl>
@@ -568,30 +568,30 @@ function wiFor(r,T){
   return {total:T};
 }
 
-/* sample student, entirely made up, written the way Moodle prints it */
+/* sample layout: every mark is 0, written the way Moodle prints it */
 const SAMPLE=(()=>{
   const D=[
-    ["Financial Statements and Business Performance",16,38.25,[[2,21,49.5]]],
-    ["Creative Mindset for Innovation and Imagination",18.5,51],
-    ["Business Statistics for Entrepreneurs - 1",19.25,47.25],
-    ["Explorations in Entrepreneurship",20,58.5],
-    ["Marketing Fundamentals",21.5,55.5],
-    ["Foundations of Business Communication-1",22,60],
-    ["Evolution of Business and Market",23,64.5],
-    ["Business Statistics for Entrepreneurs - 2",15.5,22.5,[[1,22,51]]],
-    ["Indian Knowledge System",22.5,50.25],
-    ["Principles of Microeconomics",19,44.25],
-    ["Management Accounting",21.75,57],
-    ["Foundations of Business Communication II",23.25,58.5],
-    ["Venturing on a Budget: Rs250 Venture",18,49.5],
-    ["Persuasive Communication",22.5,66],
-    ["Website Development",null,null,null,79.4],
-    ["Business Statistics for Entrepreneurs III",23,45],
-    ["Entrepreneurial Mindset and Methods",20.5,54],
-    ["Social Media for Marketing",21.75,61.5],
-    ["Exploring Sustainability in the Indian Context",22,55.5],
-    ["Understanding Indian Culture",null,null,null,86],
-    ["Spreadsheets for Business Decisions",23.5,67.5]
+    ["Financial Statements and Business Performance",0,0],
+    ["Creative Mindset for Innovation and Imagination",0,0],
+    ["Business Statistics for Entrepreneurs - 1",0,0],
+    ["Explorations in Entrepreneurship",0,0],
+    ["Marketing Fundamentals",0,0],
+    ["Foundations of Business Communication-1",0,0],
+    ["Evolution of Business and Market",0,0],
+    ["Business Statistics for Entrepreneurs - 2",0,0],
+    ["Indian Knowledge System",0,0],
+    ["Principles of Microeconomics",0,0],
+    ["Management Accounting",0,0],
+    ["Foundations of Business Communication II",0,0],
+    ["Venturing on a Budget: Rs250 Venture",0,0],
+    ["Persuasive Communication",0,0],
+    ["Website Development",null,null,null,0],
+    ["Business Statistics for Entrepreneurs III",0,0],
+    ["Entrepreneurial Mindset and Methods",0,0],
+    ["Social Media for Marketing",0,0],
+    ["Exploring Sustainability in the Indian Context",0,0],
+    ["Understanding Indian Culture",null,null,null,0],
+    ["Spreadsheets for Business Decisions",0,0]
   ];
   const out=["Grade item\tGrade\tFeedback","Bachelor of business administration"];
   const item=(l,v)=>out.push("MANUAL ITEM",l,v+"\t ");
@@ -819,7 +819,7 @@ function render(){
   document.querySelectorAll("[data-batch]").forEach(b=>b.title=({1:"2024 intake",2:"2025 intake",3:"2026 intake"})[b.dataset.batch]||"");
   document.querySelectorAll("[data-batch]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.batch===(S.sample?2:S.batch))));
   const has=model.courses.length>0;
-  $("#parseStatus").textContent=S.sample?"Showing the sample student":has?`Read ${items.length} entries across ${model.courses.length} courses`:"Couldn't read any grades. Copy the whole Moodle Grades page and try again.";
+  $("#parseStatus").textContent=S.sample?"Showing the sample layout (all marks 0)":has?`Read ${items.length} entries across ${model.courses.length} courses`:"Couldn't read any grades. Copy the whole Moodle Grades page and try again.";
   $("#sampleBanner").classList.toggle("hidden",!S.sample);$("#rSample").classList.toggle("hidden",!S.sample);
   $("#clearAll").classList.toggle("hidden",S.sample);
   $("#results").classList.toggle("hidden",!has);$("#empty").classList.toggle("hidden",has);$("#readout").classList.toggle("hidden",!has);
@@ -937,7 +937,7 @@ function planner(){
 
 function summaryText(){
   const {sb,sp}=cache;const anyWI=Object.keys(S.wi).length>0;
-  const lines=[`DBE Grades summary${S.sample?" (sample student)":""}`,`CGPA ${fmt(sb.cgpa)} · WAM ${fmt(sb.wam,1)} · ${sb.cr} credits`];
+  const lines=[`DBE Grades summary${S.sample?" (sample layout)":""}`,`CGPA ${fmt(sb.cgpa)} · WAM ${fmt(sb.wam,1)} · ${sb.cr} credits`];
   for(const [t,s] of Object.entries(sb.terms).sort((a,b)=>a[0]-b[0])) if(s.cr) lines.push(`Term ${t}: SGPA ${fmt(s.cgpa)}, WAM ${fmt(s.wam,1)}`);
   if(anyWI) lines.push(`With tries: CGPA ${fmt(sp.cgpa)}, WAM ${fmt(sp.wam,1)}`);
   lines.push("","Made with DBE Grades: https://vatsal-naik15.github.io/dbe-grades/");
