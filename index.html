@@ -190,6 +190,14 @@ kbd{font-family:var(--sans);font-size:12px;border:1px solid var(--rule);border-b
 .chip{font-size:12.5px;border:1px solid var(--rule);border-radius:999px;padding:2px 9px;color:var(--muted);white-space:nowrap}
 .chip.used{border-color:var(--ink);color:var(--ink)}
 .chip.zero{text-decoration:line-through}
+.chip.proj{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--teal);border-color:color-mix(in srgb,var(--teal) 45%,transparent);padding:1px 7px;vertical-align:2px}
+.picks{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;font-size:12px;color:var(--muted)}
+.picks span{margin-right:2px}
+.picks button{min-width:30px;border:1px solid var(--rule);background:var(--sheet);border-radius:6px;padding:2px 6px;font-size:12.5px;cursor:pointer}
+.picks button:hover{border-color:var(--brass)}
+.picks button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.check{display:flex!important;justify-content:flex-start!important;align-items:center;gap:8px;margin-top:12px!important;font-size:13.5px;color:var(--ink)!important}
+.check input{accent-color:var(--brass);width:16px;height:16px;margin:0}
 .best .tot{font-weight:600}
 .best .parts{font-size:12.5px;color:var(--muted)}
 .best .from{font-size:12px;color:var(--brass)}
@@ -270,6 +278,7 @@ input[type=range]{width:100%;accent-color:var(--brass);height:18px;margin:0}
       <div class="seg" role="group" aria-label="Curriculum">
         <button type="button" data-batch="1" aria-pressed="false">Batch 1</button>
         <button type="button" data-batch="2" aria-pressed="true">Batch 2</button>
+        <button type="button" data-batch="3" aria-pressed="false">Batch 3</button>
       </div>
       <button class="iconbtn" id="theme" type="button" aria-label="Switch light or dark theme">◐</button>
     </div>
@@ -350,7 +359,8 @@ input[type=range]{width:100%;accent-color:var(--brass);height:18px;margin:0}
         <input type="range" id="target" min="5" max="10" step="0.05" value="8">
         <ol class="route" id="route"></ol>
         <div class="planbar"><span id="routeSum"></span><button class="btn brass" type="button" id="applyRoute">Apply this plan</button></div>
-        <p class="hint">Check which courses your programme lets you retake before you plan around them.</p>
+        <label class="check" for="incProj"><input type="checkbox" id="incProj"> Include project-based courses</label>
+        <p class="hint">Project-based courses are marked on a project, not a CLA and final exam, so they're left out unless you include them. Check which courses your programme lets you retake before you plan around them.</p>
       </section>
       <section class="card levers" id="levers"></section>
     </div>
@@ -369,11 +379,12 @@ input[type=range]{width:100%;accent-color:var(--brass);height:18px;margin:0}
         <p>For retakes, your better CLA score and your better final exam score are kept separately and added together, which is how Moodle does it. A lower retake score never pulls your mark down.</p>
       </div>
     </section>
-    <p class="foot">Made by Vatsal Naik, BBA DBE Batch 2025. This is an unofficial tool; your official transcript is what counts. Credits follow the published BBA DBE curriculum, so switch batch at the top if yours differs. Spotted a mistake? Tell me.</p>
+    <p class="foot">Made by Vatsal Naik, BBA DBE Batch 2025. This is an unofficial tool; your official transcript is what counts. Credits follow the BBA DBE curriculum for each batch (cross-checked with acedbe.in). The batch is picked from your paste; switch it at the top if needed. Spotted a mistake? Tell me.</p>
   </div>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="courses.js"></script>
 <script id="core">
 /* ---------- pure logic (no DOM) ---------- */
 const GRADES=[["O",90,10],["A",80,9],["B",70,8],["C",60,7],["D",50,6],["E",40,5],["F",0,0]];
@@ -385,61 +396,14 @@ const norm=s=>String(s).toLowerCase()
   .replace(/\b(iii|ii|i)\b/g,m=>({i:"1",ii:"2",iii:"3"})[m])
   .replace(/[^a-z0-9]/g,"");
 
-const LATER=[
- ["ST41x","Introduction to Strategic Management",3,4],["MD41x","Sustainability Measures for SMEs",1.5,4],
- ["OM41x","Operations Management",1.5,4],["EP41x","Entrepreneurial Hypothesis Testing",1.5,4],
- ["MK41x","Digital Marketing Strategy",3,4],["OB41x","People, Work and Organisations",3,4],
- ["MD42x","Exploring Society and Social Structure",1.5,4,["exploringsociety"]],
- ["ST51x","New Age Business Models",3,5],["ES51x","Principles of Macroeconomics",1.5,5,["macroeconomics"]],
- ["ES52x","Behavioural Economics",1.5,5,["behaviouraleconomics","behavioraleconomics"]],
- ["EP51x","Generating Entrepreneurial Resources",3,5],
- ["SE51x","Digital Design Tools and Documentation and Presentation",3,5,["digitaldesigntools"]],
- ["MK51x","New Product Development",3,5],
- ["OM61x","Supply Chain Management",3,6,["supplychain"]],["MK61x","Growth Hacking",1.5,6],
- ["MK62x","Product Management",3,6,["productmanagement"]],["ST61x","Inclusive Business Models",3,6],
- ["DS61x","Business Research Methods",1.5,6],["PJ61x","Project / Do Your Venture 1",3,6,["doyourventure"]]
-];
-const T1CORE=[
- ["EP12x","Explorations in Entrepreneurship",1.5,1],["MK11x","Marketing Fundamentals",3,1],
- ["AE11x","Foundations of Business Communication I",1.5,1,["businesscommunication1"]],
- ["FA11x","Financial Statements and Business Performance",3,1,["financialstatements"]],
- ["EP11x","Creative Mindset for Innovation and Imagination",1.5,1,["creativemindset"]]
-];
-const T2CORE=[
- ["SE21x","Persuasive Communication",1.5,2],["ES21x","Principles of Microeconomics",1.5,2,["microeconomics"]],
- ["AE21x","Foundations of Business Communication II",1.5,2,["businesscommunication2"]],
- ["ID22x","Indian Knowledge System",3,2,["indianknowledge"]],
- ["PJ21x","Venturing on a Budget: ₹250 Venture",1.5,2,["250venture","venturingonabudget"]],
- ["ID21x","Website Development",3,2,["websitedevelopment"]]
-];
-const T3CORE=[
- ["EP31x","Entrepreneurial Mindset and Methods",3,3,["entrepreneurialmindset"]],
- ["SE31x","Design Your Thinking",1.5,3],["MK31x","Social Media for Marketing",3,3,["socialmedia"]],
- ["ID32x","Exploring Sustainability in the Indian Context",3,3,["sustainabilityintheindian","exploringsustainability"]],
- ["AE31x","Spreadsheets for Business Decisions",1.5,3,["spreadsheets"]],
- ["ID31x","Understanding Indian Culture",3,3,["understandingindianculture","indianculture"]]
-];
-const CATALOG={
- 2:[...T1CORE,
-    ["DS11x_B2","Business Statistics for Entrepreneurs I",1.5,1,["statisticsforentrepreneurs1"]],
-    ["ST21x","Evolution of Business and Market",1.5,1,["evolutionofbusiness"]],
-    ...T2CORE,
-    ["FA31x","Management Accounting",1.5,2,["managementaccounting"]],
-    ["DS21x_B2","Business Statistics for Entrepreneurs II",1.5,2,["statisticsforentrepreneurs2"]],
-    ...T3CORE,
-    ["DS31x_B2","Business Statistics for Entrepreneurs III",1.5,3,["statisticsforentrepreneurs3"]],
-    ["DS21x","Advanced Statistics for Business",1.5,4,["advancedstatistics"]],
-    ...LATER],
- 1:[...T1CORE,
-    ["DS11x_B1","Business Statistics for Entrepreneurs",3,1,["statisticsforentrepreneurs","statisticsforentrepreneurs1"]],
-    ...T2CORE,
-    ["DS21x","Advanced Statistics for Business",1.5,2,["advancedstatistics","statisticsforentrepreneurs2"]],
-    ["ST21x","Evolution of Business and Market",1.5,2,["evolutionofbusiness"]],
-    ["FA31x","Management Accounting",1.5,3,["managementaccounting"]],
-    ...T3CORE,
-    ...LATER]
-};
-const catalogFor=b=>(CATALOG[b]||CATALOG[2]).map(([id,name,cr,term,al])=>({id,code:id.replace(/_B\d$/,""),name,cr,term,keys:[norm(name),...(al||[])]}));
+/* course list lives in courses.js (COURSES, BATCH_YEARS, BATCHES) */
+const COURSE_LIST=typeof COURSES!=="undefined"?COURSES:require("./courses.js").COURSES;
+const YEAR_TO_BATCH=typeof BATCH_YEARS!=="undefined"?BATCH_YEARS:require("./courses.js").BATCH_YEARS;
+const catalogFor=b=>COURSE_LIST.filter(c=>c.batches.includes(b)).map(c=>{
+  const id=c.code||"n:"+norm(c.name);
+  return {id,code:(c.code||"").replace(/_B\d$/,""),name:c.name,cr:c.credits,term:c.term,project:!!c.project,keys:[norm(c.name),...(c.aliases||[])]};
+});
+function detectBatch(text){const m=String(text).match(/batch\s*(20\d\d)/i);return m&&YEAR_TO_BATCH[m[1]]?YEAR_TO_BATCH[m[1]]:null}
 
 function matchCourse(label,cat){
   const k=norm(label.replace(/\brs\.?\s*(?=\d)/ig,""));
@@ -517,14 +481,15 @@ function buildCourses(items,batch){
   for(const it of items){
     const c=matchCourse(it.name,cat);
     const key=c?c.id:"?"+norm(it.name);
-    if(!map.has(key)) map.set(key,{key,code:c?c.code:"",name:c?c.name:it.name,cr:c?c.cr:null,term:c?c.term:null,matched:!!c,attempts:{}});
+    if(!map.has(key)) map.set(key,{key,code:c?c.code:"",name:c?c.name:it.name,cr:c?c.cr:null,term:c?c.term:null,project:c?c.project:false,matched:!!c,attempts:{}});
     const co=map.get(key); const a=co.attempts[it.attempt]||(co.attempts[it.attempt]={});
     if(a[it.comp]==null) a[it.comp]=it.value;
   }
-  const courses=[...map.values()];
+  const hasMarks=c=>Object.values(c.attempts).some(a=>["cla","final","total"].some(k=>typeof a[k]==="number"));
+  const courses=[...map.values()].filter(c=>c.matched||hasMarks(c));
   const terms=courses.filter(c=>c.matched&&c.term).map(c=>c.term);
   const maxTerm=terms.length?Math.max(...terms):0;
-  const pending=cat.filter(c=>c.term<=maxTerm&&!map.has(c.id)).map(c=>({key:c.id,code:c.code,name:c.name,cr:c.cr,term:c.term,matched:true,pending:true,attempts:{}}));
+  const pending=cat.filter(c=>c.term<=maxTerm&&!map.has(c.id)).map(c=>({key:c.id,code:c.code,name:c.name,cr:c.cr,term:c.term,project:c.project,matched:true,pending:true,attempts:{}}));
   return {courses,pending,maxTerm};
 }
 
@@ -560,17 +525,20 @@ function evaluate(co,wi,manualTotal){
     incomplete:hasComp&&!(cla.length&&fin.length)&&!tot.length&&manualTotal==null};
 }
 
-function summarise(rows){ // rows: [{cr,term,best,gp}]
-  const agg=f=>{let c=0,g=0,m=0;for(const r of rows.filter(f)){c+=r.cr;g+=r.gp*r.cr;m+=r.best*r.cr}return {cr:c,cgpa:c?g/c:null,wam:c?m/c:null}};
-  const all=agg(r=>r.best!=null&&r.cr);
-  const terms={}; for(const t of [...new Set(rows.map(r=>r.term).filter(Boolean))]) terms[t]=agg(r=>r.term===t&&r.best!=null&&r.cr);
+function summarise(rows){ // rows: [{cr,term,best,gp,graded}]
+  const agg=f=>{let c=0,g=0,mc=0,m=0;for(const r of rows.filter(f)){if(!r.cr)continue;
+    if(r.graded||r.best!=null){c+=r.cr;g+=r.gp*r.cr}
+    if(r.best!=null){mc+=r.cr;m+=r.best*r.cr}}
+    return {cr:c,cgpa:c?g/c:null,wam:mc?m/mc:null}};
+  const all=agg(()=>true);
+  const terms={}; for(const t of [...new Set(rows.map(r=>r.term).filter(Boolean))]) terms[t]=agg(r=>r.term===t);
   return {...all,terms};
 }
 
 /* greedy route to a target CGPA: one grade step at a time, best gain per mark, new courses cost extra */
-function planRoute(base,sb,target){
+function planRoute(base,sb,target,incProj){
   if(sb.cgpa==null) return {moves:[],reached:false,cg:null};
-  const state=base.filter(r=>r.best!=null&&r.cr&&r.e.mode!=="none"&&r.e.grade)
+  const state=base.filter(r=>r.best!=null&&r.cr&&r.e.mode!=="none"&&r.e.grade&&(incProj||!r.c.project))
     .map(r=>{const gi=GRADES.findIndex(g=>g[0]===r.e.grade[0]);return {r,gi0:gi,gi}});
   let cg=sb.cgpa,guard=0;
   while(cg<target-1e-9&&guard++<200){
@@ -635,7 +603,7 @@ const SAMPLE=(()=>{
   for(const [n,,,rt] of D) for(const [k,c,f] of (rt||[])){item(`${n}-Retake-${k} CLA (25)`,c.toFixed(2));item(`${n}-Retake-${k} Final Exam (75)`,f.toFixed(2))}
   return out.join("\n");
 })();
-if(typeof module!=="undefined") module.exports={parseMoodle,buildCourses,evaluate,summarise,gradeOf,matchCourse,catalogFor,parseLabel,planRoute,wiFor,GRADES,SAMPLE};
+if(typeof module!=="undefined") module.exports={parseMoodle,buildCourses,evaluate,summarise,gradeOf,matchCourse,catalogFor,parseLabel,planRoute,wiFor,detectBatch,GRADES,SAMPLE};
 </script>
 
 <script>
@@ -647,13 +615,13 @@ const reduced=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const store={get(k,d){try{const v=localStorage.getItem("dbegrades:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
              set(k,v){try{localStorage.setItem("dbegrades:"+k,JSON.stringify(v))}catch(e){}}};
 
-const S={text:store.get("text",""),batch:store.get("batch",2),open:{},manual:store.get("manual",{}),crOver:store.get("crOver",{}),termOver:store.get("termOver",{}),target:store.get("target",null)};
+const S={text:store.get("text",""),batch:store.get("batch",2),open:{},manual:store.get("manual",{}),crOver:store.get("crOver",{}),termOver:store.get("termOver",{}),target:store.get("target",null),letter:store.get("letter",{}),incProj:store.get("incProj",false)};
 S.sample=!S.text.trim();
 S.wi=store.get(S.sample?"wiSample":"wi",{});
 let model={courses:[],pending:[],maxTerm:0};
 let lastGrades={};
 
-function save(){store.set("text",S.text);store.set("batch",S.batch);store.set(S.sample?"wiSample":"wi",S.wi);store.set("manual",S.manual);store.set("crOver",S.crOver);store.set("termOver",S.termOver)}
+function save(){store.set("text",S.text);store.set("batch",S.batch);store.set(S.sample?"wiSample":"wi",S.wi);store.set("manual",S.manual);store.set("crOver",S.crOver);store.set("termOver",S.termOver);store.set("letter",S.letter);store.set("incProj",S.incProj)}
 
 function effCr(c){return S.crOver[c.key]!=null?S.crOver[c.key]:c.cr}
 function effTerm(c){return S.termOver[c.key]!=null?S.termOver[c.key]:c.term}
@@ -663,7 +631,9 @@ function computeAll(useWI){
   const out=[];
   for(const c of allCourses()){
     const e=evaluate(c,useWI?S.wi[c.key]:null,S.sample?null:S.manual[c.key]);
-    out.push({c,e,cr:effCr(c),term:effTerm(c),best:e.best,gp:e.grade?e.grade[2]:0});
+    const L=!S.sample&&e.best==null?S.letter[c.key]:null;
+    if(L){e.grade=GRADES.find(g=>g[0]===L);e.letterOnly=true}
+    out.push({c,e,cr:effCr(c),term:effTerm(c),best:e.best,gp:e.grade?e.grade[2]:0,graded:!!e.grade});
   }
   return out;
 }
@@ -770,7 +740,7 @@ function drawTrend(base,proj,anyWI){
 
 /* credits by grade */
 function drawMix(base){
-  const counted=base.filter(r=>r.best!=null&&r.cr&&r.e.grade);
+  const counted=base.filter(r=>(r.best!=null||r.graded)&&r.cr&&r.e.grade);
   const tot=counted.reduce((a,r)=>a+r.cr,0);
   const rows=GRADES.map(([g],i)=>{const rs=counted.filter(r=>r.e.grade[0]===g);return {g,i,cr:rs.reduce((a,r)=>a+r.cr,0),n:rs.length}}).filter(d=>d.cr>0);
   const shade=i=>i===6?"var(--warn)":`color-mix(in srgb,var(--ink) ${92-i*13}%,var(--band))`;
@@ -790,11 +760,12 @@ function rowHTML(r){
     return `<div class="row pending" data-key="${c.key}">
       <div class="cname"><div class="code">${esc(c.code)}</div><div class="nm">${esc(c.name)}</div></div>
       <div class="cr">${cr}</div>
-      <div class="chips"><span class="chip">Not in the paste yet</span></div>
-      <div class="best"><label style="font-size:12.5px;color:var(--muted)">Total if known <input type="number" min="0" max="100" step="0.1" id="man-${c.key}" data-manual="${c.key}" value="${m??""}" aria-label="Total for ${esc(c.name)}"></label></div>
+      <div class="chips"><span class="chip">Not in the paste yet</span>${c.project?'<span class="chip proj">Project</span>':""}</div>
+      <div class="best"><label style="font-size:12.5px;color:var(--muted)">Mark if known <input type="number" min="0" max="100" step="0.1" id="man-${c.key}" data-manual="${c.key}" value="${m??""}" aria-label="Mark for ${esc(c.name)}"></label>
+        ${m==null&&!S.sample?`<div class="picks" role="group" aria-label="Or pick a grade for ${esc(c.name)}"><span>or grade</span>${GRADES.map(g=>`<button type="button" data-letter="${c.key}" data-l="${g[0]}" aria-pressed="${S.letter[c.key]===g[0]}">${g[0]}</button>`).join("")}</div>`:""}</div>
       <div class="grade" data-grade="${c.key}">${e.grade?e.grade[0]:"·"}</div><div></div></div>`;
   }
-  const crCell=c.matched?`${cr}`:`<select id="cr-${esc(c.key)}" data-cr="${esc(c.key)}" aria-label="Credits for ${esc(c.name)}"><option value="">?</option>${[1.5,3,4.5].map(v=>`<option ${cr===v?"selected":""}>${v}</option>`).join("")}</select>`;
+  const crCell=c.matched?`${cr}`:`<div class="picks" role="group" aria-label="Credits for ${esc(c.name)}">${[1.5,3,4.5].map(v=>`<button type="button" data-cr="${esc(c.key)}" data-v="${v}" aria-pressed="${cr===v}">${v}</button>`).join("")}</div>`;
   const chips=e.perAttempt.map(a=>{
     const used=(e.mode==="comp"&&(e.cla.n===a.n||e.fin.n===a.n))||(e.mode==="total"&&e.cla.n===a.n);
     const txt=a.total!=null?a.total.toFixed(1):a.cla!=null?`CLA ${a.cla}`:`Final ${a.final}`;
@@ -809,7 +780,7 @@ function rowHTML(r){
   const open=!!S.open[c.key];
   const canSim=e.mode!=="none";
   return `<div class="row" data-key="${esc(c.key)}">
-    <div class="cname"><div class="code">${esc(c.code||"Unrecognised")}</div><div class="nm">${esc(c.name)}</div>${e.flag?`<div class="flag">${esc(e.flag)}</div>`:""}${!c.matched?`<div class="flag">Set its credits to count it</div>`:""}</div>
+    <div class="cname"><div class="code">${esc(c.code||(c.matched?"":"Not on the course list yet"))}</div><div class="nm">${esc(c.name)}${c.project?' <span class="chip proj">Project</span>':""}</div>${e.flag?`<div class="flag">${esc(e.flag)}</div>`:""}${!c.matched&&cr==null?`<div class="flag">New course: pick its credits to count it</div>`:""}</div>
     <div class="cr">${crCell}</div>
     <div class="chips">${chips||'<span class="chip">—</span>'}</div>
     <div class="best">${best}</div>
@@ -829,7 +800,7 @@ function simHTML(c,e){
       <div><label for="fin-${k}">Retake final <output data-o="final">${fv.toFixed(2)} / 75</output></label>
         <div class="track"><input id="fin-${k}" type="range" min="0" max="75" step="0.25" value="${fv}" data-s="final"><span class="mark" style="left:${e.fin.v/75*100}%"></span></div></div>
       <div class="res" data-res></div>
-      <p class="hint">Move the sliders to see what a retake score would do to your grade and CGPA. The faint line is your current best, and your higher score always counts.</p>
+      <p class="hint">${c.project?"Project-based course: check whether a resubmission is allowed. ":""}Move the sliders to see what a retake score would do to your grade and CGPA. The faint line is your current best, and your higher score always counts.</p>
     </div>`;
   }
   const tv=w&&w.total!=null?w.total:e.best;
@@ -837,7 +808,7 @@ function simHTML(c,e){
     <div><label for="tot-${k}">Retake total <output data-o="total">${tv.toFixed(1)} / 100</output></label>
       <div class="track"><input id="tot-${k}" type="range" min="0" max="100" step="0.5" value="${tv}" data-s="total"><span class="mark" style="left:${e.best}%"></span></div></div>
     <div class="res" data-res></div>
-    <p class="hint">This course is marked as one total. Check whether yours can be reattempted at all.</p>
+    <p class="hint">${c.project?"Project-based course: marked on your project as one total. Check whether a resubmission is allowed.":"This course is marked as one total."}</p>
   </div>`;
 }
 
@@ -845,6 +816,7 @@ function render(){
   const text=S.sample?SAMPLE:S.text;
   const items=parseMoodle(text);
   model=buildCourses(items,S.sample?2:S.batch);
+  document.querySelectorAll("[data-batch]").forEach(b=>b.title=({1:"2024 intake",2:"2025 intake",3:"2026 intake"})[b.dataset.batch]||"");
   document.querySelectorAll("[data-batch]").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.batch===(S.sample?2:S.batch))));
   const has=model.courses.length>0;
   $("#parseStatus").textContent=S.sample?"Showing the sample student":has?`Read ${items.length} entries across ${model.courses.length} courses`:"Couldn't read any grades. Copy the whole Moodle Grades page and try again.";
@@ -863,7 +835,7 @@ function render(){
   const byTerm={};for(const r of base){const t=r.term||0;(byTerm[t]||(byTerm[t]=[])).push(r)}
   let html="";
   for(const t of Object.keys(byTerm).map(Number).sort((a,b)=>(a||99)-(b||99))){
-    html+=`<section class="term" data-term="${t}"><div class="termhead"><h3>${t?"Term "+t:"Unrecognised courses"}</h3><span data-termsum="${t}"></span></div>
+    html+=`<section class="term" data-term="${t}"><div class="termhead"><h3>${t?"Term "+t:"New courses"}</h3><span data-termsum="${t}"></span></div>
       <div class="table"><div class="row head"><div>Course</div><div>Credits</div><div>Attempts</div><div>Final mark</div><div style="text-align:center">Grade</div><div></div></div>
       ${byTerm[t].map(rowHTML).join("")}</div></section>`;
   }
@@ -873,8 +845,8 @@ function render(){
   if(pend.length) notes.push(`<b>${pend.map(p=>esc(p.name)).join(", ")}</b> ${pend.length>1?"are":"is"} part of the curriculum but missing from the paste, so ${pend.length>1?"they are":"it is"} left out of the averages until a total is entered.`);
   const zeroRet=base.filter(r=>r.e.perAttempt.some(a=>a.n>0&&a.total===0));
   if(zeroRet.length) notes.push(`A retake recorded as 0 for <b>${zeroRet.map(r=>esc(r.c.name)).join(", ")}</b> was ignored, as the original is higher. Confirm with the programme office if you did sit it.`);
-  const unm=model.courses.filter(c=>!c.matched);
-  if(unm.length) notes.push(`${unm.length} course${unm.length>1?"s":""} could not be matched to the Batch ${S.batch} curriculum. Pick credits for ${unm.length>1?"them":"it"} below, or switch batch.`);
+  const unm=model.courses.filter(c=>!c.matched&&effCr(c)==null);
+  if(unm.length) notes.push(`<b>${unm.length} new course${unm.length>1?"s need":" needs"} credits</b> before ${unm.length>1?"they count":"it counts"}: ${unm.map(c=>esc(c.name)).join(", ")}. Tap 1.5, 3 or 4.5 next to ${unm.length>1?"each one":"it"} under "New courses" below. The course outline lists the credits.`);
   $("#notes").innerHTML=notes.map(n=>`<p class="note">${n}</p>`).join("");
   live();
 }
@@ -889,15 +861,15 @@ function live(){
   $("#rCred").textContent=`${sb.cr} credits counted`;
   setDelta("#rCgpaD",anyWI?sp.cgpa-sb.cgpa:0,anyWI);setDelta("#rWamD",anyWI?sp.wam-sb.wam:0,anyWI);
   $("#resetWI").classList.toggle("hidden",!anyWI);
-  const years=[[1,3],[4,6]].map(([a,b])=>summarise(base.filter(r=>r.term>=a&&r.term<=b)));
-  const cnt=base.filter(r=>r.best!=null&&r.cr);
+  const years=[[1,3],[4,6],[7,9]].map(([a,b])=>summarise(base.filter(r=>r.term>=a&&r.term<=b)));
+  const cnt=base.filter(r=>(r.best!=null||r.graded)&&r.cr);
   const retakes=base.filter(r=>r.e.retaken&&r.e.perAttempt.some(a=>a.n>0&&[a.cla,a.final,a.total].some(v=>v>0)));
-  const topC=[...cnt].sort((a,b)=>b.best-a.best)[0];
+  const topC=[...cnt].filter(r=>r.best!=null).sort((a,b)=>b.best-a.best)[0];
   $("#overview").innerHTML=`
     <div><dt>CGPA</dt><dd>${fmt(sb.cgpa)}${anyWI?`<small class="withwi">${fmt(sp.cgpa)} with tries</small>`:""}</dd></div>
     <div><dt>Average marks (WAM)</dt><dd>${fmt(sb.wam)}${anyWI?`<small class="withwi">${fmt(sp.wam)} with tries</small>`:""}</dd></div>
     <div><dt>Credits counted</dt><dd>${sb.cr}<small>${cnt.length} courses</small></dd></div>
-    ${years[1].cr?`<div><dt>Year 1 GPA</dt><dd>${fmt(years[0].cgpa)}</dd></div><div><dt>Year 2 GPA</dt><dd>${fmt(years[1].cgpa)}</dd></div>`:""}
+    ${years[1].cr?years.filter(y=>y.cr).map((y,i)=>`<div><dt>Year ${i+1} GPA</dt><dd>${fmt(y.cgpa)}</dd></div>`).join(""):""}
     <div><dt>Courses improved by retake</dt><dd>${retakes.length}<small>course${retakes.length===1?"":"s"}</small></dd></div>
     ${topC?`<div><dt>Best course</dt><dd>${topC.best.toFixed(1)}<small>${esc(topC.c.name)}</small></dd></div>`:""}`;
   for(const [t,s] of Object.entries(sb.terms)){
@@ -931,7 +903,7 @@ function setDelta(sel,d,show){const el=$(sel);el.classList.toggle("hidden",!show
 function levers(base,sb){
   const cands=[];
   for(const r of base){
-    if(r.best==null||!r.cr||r.e.mode!=="comp"||!r.e.grade||r.e.grade[0]==="O") continue;
+    if(r.best==null||!r.cr||r.e.mode!=="comp"||!r.e.grade||r.e.grade[0]==="O"||(r.c.project&&!S.incProj)) continue;
     const idx=GRADES.findIndex(g=>g[0]===r.e.grade[0]);const next=GRADES[idx-1];
     const need=r2(next[1]-r.best);
     const gain=r.cr*(next[2]-r.e.grade[2])/sb.cr;
@@ -956,7 +928,7 @@ function planner(){
   let t=S.target!=null?S.target:Math.min(10,Math.round((sb.cgpa+0.3)*20)/20);
   if(t<min)t=min;
   inp.value=t;$("#targetOut").textContent=(+t).toFixed(2);
-  route=planRoute(base,sb,+t);
+  route=planRoute(base,sb,+t,S.incProj);
   $("#route").innerHTML=route.moves.map(m=>`<li><span>${esc(m.r.c.name)}<br><span class="g">${m.r.cr} credits · ${m.need.toFixed(1)} more marks on your best total of ${m.r.best.toFixed(1)}</span></span><span class="up">${m.r.e.grade[0]} → <em>${m.to[0]}</em></span></li>`).join("");
   const marks=route.moves.reduce((a,m)=>a+m.need,0);
   $("#routeSum").innerHTML=route.moves.length?(route.reached?`${route.moves.length} retake${route.moves.length>1?"s":""}, about ${Math.round(marks)} extra marks, lands at <b>${route.cg.toFixed(2)}</b>`:`Even an O in every course reaches only ${route.cg.toFixed(2)} on current credits.`):"Already there.";
@@ -978,6 +950,7 @@ let tm;
 $("#input").value=S.text;
 function setText(v){
   const was=S.sample;S.text=v;S.sample=!v.trim();
+  const db=detectBatch(v);if(db&&db!==S.batch){S.batch=db;toast(`Batch ${db} picked from your paste`)}
   if(was!==S.sample){S.wi=store.get(S.sample?"wiSample":"wi",{});S.open={};S.target=null;lastGrades={}}
   save();render();
 }
@@ -993,7 +966,9 @@ $("#copySum").addEventListener("click",()=>{
 });
 $("#terms").addEventListener("click",e=>{
   const w=e.target.closest("[data-wi]");if(w){const k=w.dataset.wi;S.open[k]=!S.open[k];render();const n=document.querySelector(`[data-sim="${CSS.escape(k)}"] input`);if(n)n.focus();return}
-  const c=e.target.closest("[data-clear]");if(c){delete S.wi[c.dataset.clear];save();render()}
+  const c=e.target.closest("[data-clear]");if(c){delete S.wi[c.dataset.clear];save();render();return}
+  const cb=e.target.closest("button[data-cr]");if(cb){const k=cb.dataset.cr,v=+cb.dataset.v;if(S.crOver[k]===v)delete S.crOver[k];else S.crOver[k]=v;save();render();return}
+  const lb=e.target.closest("[data-letter]");if(lb){const k=lb.dataset.letter,l=lb.dataset.l;if(S.letter[k]===l)delete S.letter[k];else S.letter[k]=l;save();render();return}
 });
 $("#terms").addEventListener("input",e=>{
   const s=e.target.closest("[data-s]");
@@ -1006,9 +981,10 @@ $("#terms").addEventListener("input",e=>{
   if(m&&!S.sample){const v=m.value===""?null:Math.max(0,Math.min(100,parseFloat(m.value)));if(v==null||isNaN(v))delete S.manual[m.dataset.manual];else S.manual[m.dataset.manual]=v;save();live()}
 });
 $("#terms").addEventListener("change",e=>{
-  const c=e.target.closest("[data-cr]");if(c){if(c.value)S.crOver[c.dataset.cr]=parseFloat(c.value);else delete S.crOver[c.dataset.cr];save();render()}
   if(e.target.closest("[data-manual]"))render();
 });
+$("#incProj").checked=!!S.incProj;
+$("#incProj").addEventListener("change",e=>{S.incProj=e.target.checked;save();live()});
 $("#target").addEventListener("input",e=>{S.target=+e.target.value;store.set("target",S.target);planner()});
 $("#applyRoute").addEventListener("click",()=>{
   if(!route||!route.moves.length)return;
